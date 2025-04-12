@@ -59,9 +59,10 @@ type FutureResult<'a, T, E> = Pin<Box<dyn Future<Output = Result<T, E>> + Send +
 /// For a blocking version, use [`WalletPersister`].
 ///
 /// Associated functions of this trait should not be called directly, and the trait is designed so
-/// that associated functions are hard to find (since they are not methods!). [`AsyncWalletPersister`] is
-/// used by [`PersistedWallet`] (a light wrapper around [`Wallet`]) which enforces some level of
-/// safety. Refer to [`PersistedWallet`] for more about the safety checks.
+/// that associated functions are hard to find (since they are not methods!).
+/// [`AsyncWalletPersister`] is used by [`PersistedWallet`] (a light wrapper around [`Wallet`])
+/// which enforces some level of safety. Refer to [`PersistedWallet`] for more about the safety
+/// checks.
 pub trait AsyncWalletPersister {
     /// Error type of the persister.
     type Error;
@@ -112,11 +113,11 @@ pub trait AsyncWalletPersister {
 ///
 /// * Ensure the persister is initialized before data is persisted.
 /// * Ensure there were no previously persisted wallet data before creating a fresh wallet and
-///     persisting it.
+///   persisting it.
 /// * Only clear the staged changes of [`Wallet`] after persisting succeeds.
 /// * Ensure the wallet is persisted to the same `P` type as when created/loaded. Note that this is
-///     not completely fool-proof as you can have multiple instances of the same `P` type that are
-///     connected to different databases.
+///   not completely fool-proof as you can have multiple instances of the same `P` type that are
+///   connected to different databases.
 #[derive(Debug)]
 pub struct PersistedWallet<P> {
     inner: Wallet,
@@ -167,9 +168,11 @@ impl<P: WalletPersister> PersistedWallet<P> {
         let changeset = P::initialize(persister).map_err(LoadWithPersistError::Persist)?;
         Wallet::load_with_params(changeset, params)
             .map(|opt| {
-                opt.map(|inner| PersistedWallet {
-                    inner,
-                    _marker: PhantomData,
+                opt.map(|inner| {
+                    PersistedWallet {
+                        inner,
+                        _marker: PhantomData,
+                    }
                 })
             })
             .map_err(LoadWithPersistError::InvalidChangeSet)
@@ -228,9 +231,11 @@ impl<P: AsyncWalletPersister> PersistedWallet<P> {
             .map_err(LoadWithPersistError::Persist)?;
         Wallet::load_with_params(changeset, params)
             .map(|opt| {
-                opt.map(|inner| PersistedWallet {
-                    inner,
-                    _marker: PhantomData,
+                opt.map(|inner| {
+                    PersistedWallet {
+                        inner,
+                        _marker: PhantomData,
+                    }
                 })
             })
             .map_err(LoadWithPersistError::InvalidChangeSet)
@@ -364,11 +369,13 @@ impl<E: fmt::Display> fmt::Display for CreateWithPersistError<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Persist(err) => fmt::Display::fmt(err, f),
-            Self::DataAlreadyExists(changeset) => write!(
-                f,
-                "Cannot create wallet in persister which already contains wallet data: {:?}",
-                changeset
-            ),
+            Self::DataAlreadyExists(changeset) => {
+                write!(
+                    f,
+                    "Cannot create wallet in persister which already contains wallet data: {:?}",
+                    changeset
+                )
+            }
             Self::Descriptor(err) => fmt::Display::fmt(&err, f),
         }
     }

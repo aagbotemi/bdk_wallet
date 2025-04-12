@@ -237,7 +237,8 @@ fn mix<T: Clone>(vec: Vec<Vec<T>>) -> Vec<Vec<T>> {
 
 /// Type for a map of sets of [`Condition`] items keyed by each set's index
 pub type ConditionMap = BTreeMap<usize, HashSet<Condition>>;
-/// Type for a map of folded sets of [`Condition`] items keyed by a vector of the combined set's indexes
+/// Type for a map of folded sets of [`Condition`] items keyed by a vector of the combined set's
+/// indexes
 pub type FoldedConditionMap = BTreeMap<Vec<usize>, HashSet<Condition>>;
 
 fn serialize_folded_cond_map<S>(
@@ -363,14 +364,18 @@ impl Satisfaction {
             if items.len() >= *m {
                 let mut map = BTreeMap::new();
                 let indexes = combinations(items, *m);
-                // `indexes` at this point is a Vec<Vec<usize>>, with the "n choose k" of items (m of n)
+                // `indexes` at this point is a Vec<Vec<usize>>, with the "n choose k" of items (m
+                // of n)
                 indexes
                     .into_iter()
                     // .inspect(|x| println!("--- orig --- {:?}", x))
-                    // we map each of the combinations of elements into a tuple of ([chosen items], [conditions]). unfortunately, those items have potentially more than one
-                    // condition (think about ORs), so we also use `mix` to expand those, i.e. [[0], [1, 2]] becomes [[0, 1], [0, 2]]. This is necessary to make sure that we
+                    // we map each of the combinations of elements into a tuple of ([chosen items],
+                    // [conditions]). unfortunately, those items have potentially more than one
+                    // condition (think about ORs), so we also use `mix` to expand those, i.e. [[0],
+                    // [1, 2]] becomes [[0, 1], [0, 2]]. This is necessary to make sure that we
                     // consider every possible options and check whether or not they are compatible.
-                    // since this step can turn one item of the iterator into multiple ones, we use `flat_map()` to expand them out
+                    // since this step can turn one item of the iterator into multiple ones, we use
+                    // `flat_map()` to expand them out
                     .flat_map(|i_vec| {
                         mix(i_vec
                             .iter()
@@ -386,7 +391,8 @@ impl Satisfaction {
                         .collect::<Vec<(Vec<usize>, Vec<Condition>)>>()
                     })
                     // .inspect(|x| println!("flat {:?}", x))
-                    // try to fold all the conditions for this specific combination of indexes/options. if they are not compatible, try_fold will be Err
+                    // try to fold all the conditions for this specific combination of
+                    // indexes/options. if they are not compatible, try_fold will be Err
                     .map(|(key, val)| {
                         (
                             key,
@@ -503,15 +509,18 @@ impl Condition {
 /// Errors that can happen while extracting and manipulating policies
 #[derive(Debug, PartialEq, Eq)]
 pub enum PolicyError {
-    /// Not enough items are selected to satisfy a [`SatisfiableItem::Thresh`] or a [`SatisfiableItem::Multisig`]
+    /// Not enough items are selected to satisfy a [`SatisfiableItem::Thresh`] or a
+    /// [`SatisfiableItem::Multisig`]
     NotEnoughItemsSelected(String),
-    /// Index out of range for an item to satisfy a [`SatisfiableItem::Thresh`] or a [`SatisfiableItem::Multisig`]
+    /// Index out of range for an item to satisfy a [`SatisfiableItem::Thresh`] or a
+    /// [`SatisfiableItem::Multisig`]
     IndexOutOfRange(usize),
     /// Can not add to an item that is [`Satisfaction::None`] or [`Satisfaction::Complete`]
     AddOnLeaf,
     /// Can not add to an item that is [`Satisfaction::PartialComplete`]
     AddOnPartialComplete,
-    /// Can not merge CSV or timelock values unless both are less than or both are equal or greater than 500_000_000
+    /// Can not merge CSV or timelock values unless both are less than or both are equal or greater
+    /// than 500_000_000
     MixedTimelockUnits,
     /// Incompatible conditions (not currently used)
     IncompatibleConditions,
@@ -642,8 +651,8 @@ impl Policy {
     /// create a transaction
     ///
     /// What this means is that for some spending policies the user should select which paths in
-    /// the tree it intends to satisfy while signing, because the transaction must be created differently based
-    /// on that.
+    /// the tree it intends to satisfy while signing, because the transaction must be created
+    /// differently based on that.
     pub fn requires_path(&self) -> bool {
         self.get_condition(&BTreeMap::new()).is_err()
     }
@@ -714,14 +723,18 @@ impl Policy {
 
                 Ok(Condition::default())
             }
-            SatisfiableItem::AbsoluteTimelock { value } => Ok(Condition {
-                csv: None,
-                timelock: Some(*value),
-            }),
-            SatisfiableItem::RelativeTimelock { value } => Ok(Condition {
-                csv: Some((*value).into()),
-                timelock: None,
-            }),
+            SatisfiableItem::AbsoluteTimelock { value } => {
+                Ok(Condition {
+                    csv: None,
+                    timelock: Some(*value),
+                })
+            }
+            SatisfiableItem::RelativeTimelock { value } => {
+                Ok(Condition {
+                    csv: Some((*value).into()),
+                    timelock: None,
+                })
+            }
             _ => Ok(Condition::default()),
         }
     }
@@ -796,20 +809,22 @@ fn generic_sig_in_psbt<
     extract: E,
 ) -> bool {
     //TODO check signature validity
-    psbt.inputs.iter().all(|input| match key {
-        DescriptorPublicKey::Single(SinglePub { key, .. }) => check(input, key),
-        DescriptorPublicKey::XPub(xpub) => {
-            //TODO check actual derivation matches
-            match extract(input, xpub.root_fingerprint(secp)) {
-                Some(pubkey) => check(input, &pubkey),
-                None => false,
+    psbt.inputs.iter().all(|input| {
+        match key {
+            DescriptorPublicKey::Single(SinglePub { key, .. }) => check(input, key),
+            DescriptorPublicKey::XPub(xpub) => {
+                //TODO check actual derivation matches
+                match extract(input, xpub.root_fingerprint(secp)) {
+                    Some(pubkey) => check(input, &pubkey),
+                    None => false,
+                }
             }
-        }
-        DescriptorPublicKey::MultiXPub(xpub) => {
-            //TODO check actual derivation matches
-            match extract(input, xpub.root_fingerprint(secp)) {
-                Some(pubkey) => check(input, &pubkey),
-                None => false,
+            DescriptorPublicKey::MultiXPub(xpub) => {
+                //TODO check actual derivation matches
+                match extract(input, xpub.root_fingerprint(secp)) {
+                    Some(pubkey) => check(input, &pubkey),
+                    None => false,
+                }
             }
         }
     })
@@ -885,9 +900,11 @@ impl<T: ScriptContext + 'static> SigExt for T {
                 psbt,
                 key,
                 secp,
-                |input, pk| match pk {
-                    SinglePubKey::FullKey(pk) => input.partial_sigs.contains_key(pk),
-                    _ => false,
+                |input, pk| {
+                    match pk {
+                        SinglePubKey::FullKey(pk) => input.partial_sigs.contains_key(pk),
+                        _ => false,
+                    }
                 },
                 |input, fing| {
                     input
@@ -985,12 +1002,16 @@ impl<Ctx: ScriptContext + 'static> ExtractPolicy for Miniscript<DescriptorPublic
             Terminal::Hash160(hash) => {
                 Some(SatisfiableItem::Hash160Preimage { hash: *hash }.into())
             }
-            Terminal::Multi(threshold) => Policy::make_multi::<Ctx, MAX_PUBKEYS_PER_MULTISIG>(
-                threshold, signers, build_sat, false, secp,
-            )?,
-            Terminal::MultiA(threshold) => Policy::make_multi::<Ctx, MAX_PUBKEYS_IN_CHECKSIGADD>(
-                threshold, signers, build_sat, false, secp,
-            )?,
+            Terminal::Multi(threshold) => {
+                Policy::make_multi::<Ctx, MAX_PUBKEYS_PER_MULTISIG>(
+                    threshold, signers, build_sat, false, secp,
+                )?
+            }
+            Terminal::MultiA(threshold) => {
+                Policy::make_multi::<Ctx, MAX_PUBKEYS_IN_CHECKSIGADD>(
+                    threshold, signers, build_sat, false, secp,
+                )?
+            }
             // Identities
             Terminal::Alt(inner)
             | Terminal::Swap(inner)
@@ -1000,24 +1021,30 @@ impl<Ctx: ScriptContext + 'static> ExtractPolicy for Miniscript<DescriptorPublic
             | Terminal::NonZero(inner)
             | Terminal::ZeroNotEqual(inner) => inner.extract_policy(signers, build_sat, secp)?,
             // Complex policies
-            Terminal::AndV(a, b) | Terminal::AndB(a, b) => Policy::make_and(
-                a.extract_policy(signers, build_sat, secp)?,
-                b.extract_policy(signers, build_sat, secp)?,
-            )?,
-            Terminal::AndOr(x, y, z) => Policy::make_or(
+            Terminal::AndV(a, b) | Terminal::AndB(a, b) => {
                 Policy::make_and(
-                    x.extract_policy(signers, build_sat, secp)?,
-                    y.extract_policy(signers, build_sat, secp)?,
-                )?,
-                z.extract_policy(signers, build_sat, secp)?,
-            )?,
+                    a.extract_policy(signers, build_sat, secp)?,
+                    b.extract_policy(signers, build_sat, secp)?,
+                )?
+            }
+            Terminal::AndOr(x, y, z) => {
+                Policy::make_or(
+                    Policy::make_and(
+                        x.extract_policy(signers, build_sat, secp)?,
+                        y.extract_policy(signers, build_sat, secp)?,
+                    )?,
+                    z.extract_policy(signers, build_sat, secp)?,
+                )?
+            }
             Terminal::OrB(a, b)
             | Terminal::OrD(a, b)
             | Terminal::OrC(a, b)
-            | Terminal::OrI(a, b) => Policy::make_or(
-                a.extract_policy(signers, build_sat, secp)?,
-                b.extract_policy(signers, build_sat, secp)?,
-            )?,
+            | Terminal::OrI(a, b) => {
+                Policy::make_or(
+                    a.extract_policy(signers, build_sat, secp)?,
+                    b.extract_policy(signers, build_sat, secp)?,
+                )?
+            }
             Terminal::Thresh(threshold) => {
                 let mut k = threshold.k();
                 let nodes = threshold.data();
@@ -1063,7 +1090,8 @@ pub enum BuildSatisfaction<'a> {
         /// Current blockchain height
         current_height: u32,
         /// The highest confirmation height between the inputs
-        /// CSV should consider different inputs, but we consider the worst condition for the tx as whole
+        /// CSV should consider different inputs, but we consider the worst condition for the tx as
+        /// whole
         input_max_height: u32,
     },
 }
@@ -1098,38 +1126,54 @@ impl ExtractPolicy for Descriptor<DescriptorPublicKey> {
         }
 
         match self {
-            Descriptor::Pkh(pk) => Ok(Some(miniscript::Legacy::make_signature(
-                pk.as_inner(),
-                signers,
-                build_sat,
-                secp,
-            ))),
-            Descriptor::Wpkh(pk) => Ok(Some(miniscript::Segwitv0::make_signature(
-                pk.as_inner(),
-                signers,
-                build_sat,
-                secp,
-            ))),
-            Descriptor::Sh(sh) => match sh.as_inner() {
-                ShInner::Wpkh(pk) => Ok(Some(miniscript::Segwitv0::make_signature(
+            Descriptor::Pkh(pk) => {
+                Ok(Some(miniscript::Legacy::make_signature(
                     pk.as_inner(),
                     signers,
                     build_sat,
                     secp,
-                ))),
-                ShInner::Ms(ms) => Ok(ms.extract_policy(signers, build_sat, secp)?),
-                ShInner::SortedMulti(ref keys) => make_sortedmulti(keys, signers, build_sat, secp),
-                ShInner::Wsh(wsh) => match wsh.as_inner() {
+                )))
+            }
+            Descriptor::Wpkh(pk) => {
+                Ok(Some(miniscript::Segwitv0::make_signature(
+                    pk.as_inner(),
+                    signers,
+                    build_sat,
+                    secp,
+                )))
+            }
+            Descriptor::Sh(sh) => {
+                match sh.as_inner() {
+                    ShInner::Wpkh(pk) => {
+                        Ok(Some(miniscript::Segwitv0::make_signature(
+                            pk.as_inner(),
+                            signers,
+                            build_sat,
+                            secp,
+                        )))
+                    }
+                    ShInner::Ms(ms) => Ok(ms.extract_policy(signers, build_sat, secp)?),
+                    ShInner::SortedMulti(ref keys) => {
+                        make_sortedmulti(keys, signers, build_sat, secp)
+                    }
+                    ShInner::Wsh(wsh) => {
+                        match wsh.as_inner() {
+                            WshInner::Ms(ms) => Ok(ms.extract_policy(signers, build_sat, secp)?),
+                            WshInner::SortedMulti(ref keys) => {
+                                make_sortedmulti(keys, signers, build_sat, secp)
+                            }
+                        }
+                    }
+                }
+            }
+            Descriptor::Wsh(wsh) => {
+                match wsh.as_inner() {
                     WshInner::Ms(ms) => Ok(ms.extract_policy(signers, build_sat, secp)?),
                     WshInner::SortedMulti(ref keys) => {
                         make_sortedmulti(keys, signers, build_sat, secp)
                     }
-                },
-            },
-            Descriptor::Wsh(wsh) => match wsh.as_inner() {
-                WshInner::Ms(ms) => Ok(ms.extract_policy(signers, build_sat, secp)?),
-                WshInner::SortedMulti(ref keys) => make_sortedmulti(keys, signers, build_sat, secp),
-            },
+                }
+            }
             Descriptor::Bare(ms) => Ok(ms.as_inner().extract_policy(signers, build_sat, secp)?),
             Descriptor::Tr(tr) => {
                 // If there's no tap tree, treat this as a single sig, otherwise build a `Thresh`
@@ -1635,7 +1679,12 @@ mod test {
 
     #[test]
     fn test_extract_satisfaction_timelock() {
-        //const PSBT_POLICY_CONSIDER_TIMELOCK_NOT_EXPIRED: &str = "cHNidP8BAFMBAAAAAdld52uJFGT7Yde0YZdSVh2vL020Zm2exadH5R4GSNScAAAAAAD/////ATrcAAAAAAAAF6kUXv2Fn+YemPP4PUpNR1ZbU16/eRCHAAAAAAABASvI3AAAAAAAACIAILhzvvcBzw/Zfnc9ispRK0PCahxn1F6RHXTZAmw5tqNPAQVSdmNSsmlofCEDeAtjYQk/Vfu4db2+68hyMKjc38+kWl5sP5QH8L42Zsusk3whAvhhP8vi6bSPMZokerDnvffCBs8m6MdEH8+PgUJdZ5mIrJNShyIGAvhhP8vi6bSPMZokerDnvffCBs8m6MdEH8+PgUJdZ5mIDBwu7j4AAACAAAAAACIGA3gLY2EJP1X7uHW9vuvIcjCo3N/PpFpebD+UB/C+NmbLDMkRfC4AAACAAAAAAAAA";
+        //const PSBT_POLICY_CONSIDER_TIMELOCK_NOT_EXPIRED: &str =
+        // "cHNidP8BAFMBAAAAAdld52uJFGT7Yde0YZdSVh2vL020Zm2exadH5R4GSNScAAAAAAD/////
+        // ATrcAAAAAAAAF6kUXv2Fn+YemPP4PUpNR1ZbU16/eRCHAAAAAAABASvI3AAAAAAAACIAILhzvvcBzw/
+        // Zfnc9ispRK0PCahxn1F6RHXTZAmw5tqNPAQVSdmNSsmlofCEDeAtjYQk/
+        // Vfu4db2+68hyMKjc38+kWl5sP5QH8L42Zsusk3whAvhhP8vi6bSPMZokerDnvffCBs8m6MdEH8+PgUJdZ5mIrJNShyIGAvhhP8vi6bSPMZokerDnvffCBs8m6MdEH8+PgUJdZ5mIDBwu7j4AAACAAAAAACIGA3gLY2EJP1X7uHW9vuvIcjCo3N/
+        // PpFpebD+UB/C+NmbLDMkRfC4AAACAAAAAAAAA";
         const PSBT_POLICY_CONSIDER_TIMELOCK_EXPIRED:     &str = "cHNidP8BAFMCAAAAAdld52uJFGT7Yde0YZdSVh2vL020Zm2exadH5R4GSNScAAAAAAACAAAAATrcAAAAAAAAF6kUXv2Fn+YemPP4PUpNR1ZbU16/eRCHAAAAAAABASvI3AAAAAAAACIAILhzvvcBzw/Zfnc9ispRK0PCahxn1F6RHXTZAmw5tqNPAQVSdmNSsmlofCEDeAtjYQk/Vfu4db2+68hyMKjc38+kWl5sP5QH8L42Zsusk3whAvhhP8vi6bSPMZokerDnvffCBs8m6MdEH8+PgUJdZ5mIrJNShyIGAvhhP8vi6bSPMZokerDnvffCBs8m6MdEH8+PgUJdZ5mIDBwu7j4AAACAAAAAACIGA3gLY2EJP1X7uHW9vuvIcjCo3N/PpFpebD+UB/C+NmbLDMkRfC4AAACAAAAAAAAA";
         const PSBT_POLICY_CONSIDER_TIMELOCK_EXPIRED_SIGNED: &str ="cHNidP8BAFMCAAAAAdld52uJFGT7Yde0YZdSVh2vL020Zm2exadH5R4GSNScAAAAAAACAAAAATrcAAAAAAAAF6kUXv2Fn+YemPP4PUpNR1ZbU16/eRCHAAAAAAABASvI3AAAAAAAACIAILhzvvcBzw/Zfnc9ispRK0PCahxn1F6RHXTZAmw5tqNPIgIDeAtjYQk/Vfu4db2+68hyMKjc38+kWl5sP5QH8L42ZstIMEUCIQCtZxNm6H3Ux3pnc64DSpgohMdBj+57xhFHcURYt2BpPAIgG3OnI7bcj/3GtWX1HHyYGSI7QGa/zq5YnsmK1Cw29NABAQVSdmNSsmlofCEDeAtjYQk/Vfu4db2+68hyMKjc38+kWl5sP5QH8L42Zsusk3whAvhhP8vi6bSPMZokerDnvffCBs8m6MdEH8+PgUJdZ5mIrJNShyIGAvhhP8vi6bSPMZokerDnvffCBs8m6MdEH8+PgUJdZ5mIDBwu7j4AAACAAAAAACIGA3gLY2EJP1X7uHW9vuvIcjCo3N/PpFpebD+UB/C+NmbLDMkRfC4AAACAAAAAAAEHAAEIoAQASDBFAiEArWcTZuh91Md6Z3OuA0qYKITHQY/ue8YRR3FEWLdgaTwCIBtzpyO23I/9xrVl9Rx8mBkiO0Bmv86uWJ7JitQsNvTQAQEBUnZjUrJpaHwhA3gLY2EJP1X7uHW9vuvIcjCo3N/PpFpebD+UB/C+NmbLrJN8IQL4YT/L4um0jzGaJHqw5733wgbPJujHRB/Pj4FCXWeZiKyTUocAAA==";
 

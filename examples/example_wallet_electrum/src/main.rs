@@ -32,9 +32,11 @@ fn main() -> Result<(), anyhow::Error> {
         .load_wallet(&mut db)?;
     let mut wallet = match wallet_opt {
         Some(wallet) => wallet,
-        None => Wallet::create(EXTERNAL_DESC, INTERNAL_DESC)
-            .network(NETWORK)
-            .create_wallet(&mut db)?,
+        None => {
+            Wallet::create(EXTERNAL_DESC, INTERNAL_DESC)
+                .network(NETWORK)
+                .create_wallet(&mut db)?
+        }
     };
 
     let address = wallet.next_unused_address(KeychainKind::External);

@@ -84,8 +84,8 @@ pub use utils::IsDust;
 
 /// A Bitcoin wallet
 ///
-/// The `Wallet` acts as a way of coherently interfacing with output descriptors and related transactions.
-/// Its main components are:
+/// The `Wallet` acts as a way of coherently interfacing with output descriptors and related
+/// transactions. Its main components are:
 ///
 /// 1. output *descriptors* from which it can derive addresses.
 /// 2. [`signer`]s that can contribute signatures to addresses instantiated from the descriptors.
@@ -560,41 +560,45 @@ impl Wallet {
                 check_wallet_descriptor(&desc).map_err(LoadError::Descriptor)?;
                 change_descriptor = Some(desc);
             }
-            (Some(desc), Some(expect)) => match expect {
-                // expected none for existing
-                None => {
-                    return Err(LoadError::Mismatch(LoadMismatch::Descriptor {
-                        keychain: KeychainKind::Internal,
-                        loaded: Some(desc),
-                        expected: None,
-                    }))
-                }
-                // parameters must match
-                Some(make_desc) => {
-                    check_wallet_descriptor(&desc).map_err(LoadError::Descriptor)?;
-                    let (exp_desc, keymap) =
-                        make_desc(&secp, network).map_err(LoadError::Descriptor)?;
-                    if desc.descriptor_id() != exp_desc.descriptor_id() {
+            (Some(desc), Some(expect)) => {
+                match expect {
+                    // expected none for existing
+                    None => {
                         return Err(LoadError::Mismatch(LoadMismatch::Descriptor {
                             keychain: KeychainKind::Internal,
                             loaded: Some(desc),
-                            expected: Some(exp_desc),
-                        }));
+                            expected: None,
+                        }))
                     }
-                    if params.extract_keys {
-                        internal_keymap.extend(keymap);
+                    // parameters must match
+                    Some(make_desc) => {
+                        check_wallet_descriptor(&desc).map_err(LoadError::Descriptor)?;
+                        let (exp_desc, keymap) =
+                            make_desc(&secp, network).map_err(LoadError::Descriptor)?;
+                        if desc.descriptor_id() != exp_desc.descriptor_id() {
+                            return Err(LoadError::Mismatch(LoadMismatch::Descriptor {
+                                keychain: KeychainKind::Internal,
+                                loaded: Some(desc),
+                                expected: Some(exp_desc),
+                            }));
+                        }
+                        if params.extract_keys {
+                            internal_keymap.extend(keymap);
+                        }
+                        change_descriptor = Some(desc);
                     }
-                    change_descriptor = Some(desc);
                 }
-            },
+            }
         }
 
         let change_signers = match change_descriptor {
-            Some(ref change_descriptor) => Arc::new(SignersContainer::build(
-                internal_keymap,
-                change_descriptor,
-                &secp,
-            )),
+            Some(ref change_descriptor) => {
+                Arc::new(SignersContainer::build(
+                    internal_keymap,
+                    change_descriptor,
+                    &secp,
+                ))
+            }
             None => Arc::new(SignersContainer::new()),
         };
 
@@ -724,10 +728,12 @@ impl Wallet {
 
         self.stage.merge(index_changeset.into());
 
-        spks.into_iter().map(move |(index, spk)| AddressInfo {
-            index,
-            address: Address::from_script(&spk, self.network).expect("must have address form"),
-            keychain,
+        spks.into_iter().map(move |(index, spk)| {
+            AddressInfo {
+                index,
+                address: Address::from_script(&spk, self.network).expect("must have address form"),
+                keychain,
+            }
         })
     }
 
@@ -735,7 +741,8 @@ impl Wallet {
     /// derivation index that hasn't been used in a transaction.
     ///
     /// This will attempt to reveal a new address if all previously revealed addresses have
-    /// been used, in which case the returned address will be the same as calling [`Wallet::reveal_next_address`].
+    /// been used, in which case the returned address will be the same as calling
+    /// [`Wallet::reveal_next_address`].
     ///
     /// **WARNING**: To avoid address reuse you must persist the changes resulting from one or more
     /// calls to this method before closing the wallet. See [`Wallet::reveal_next_address`].
@@ -789,11 +796,13 @@ impl Wallet {
         self.indexed_graph
             .index
             .unused_keychain_spks(self.map_keychain(keychain))
-            .map(move |(index, spk)| AddressInfo {
-                index,
-                address: Address::from_script(spk.as_script(), self.network)
-                    .expect("must have address form"),
-                keychain,
+            .map(move |(index, spk)| {
+                AddressInfo {
+                    index,
+                    address: Address::from_script(spk.as_script(), self.network)
+                        .expect("must have address form"),
+                    keychain,
+                }
             })
     }
 
@@ -911,7 +920,8 @@ impl Wallet {
         self.stage.merge(additions.into());
     }
 
-    /// Calculates the fee of a given transaction. Returns [`Amount::ZERO`] if `tx` is a coinbase transaction.
+    /// Calculates the fee of a given transaction. Returns [`Amount::ZERO`] if `tx` is a coinbase
+    /// transaction.
     ///
     /// To calculate the fee for a [`Transaction`] with inputs not owned by this wallet you must
     /// manually insert the TxOut(s) into the tx graph using the [`insert_txout`] function.
@@ -944,8 +954,8 @@ impl Wallet {
 
     /// Calculate the [`FeeRate`] for a given transaction.
     ///
-    /// To calculate the fee rate for a [`Transaction`] with inputs not owned by this wallet you must
-    /// manually insert the TxOut(s) into the tx graph using the [`insert_txout`] function.
+    /// To calculate the fee rate for a [`Transaction`] with inputs not owned by this wallet you
+    /// must manually insert the TxOut(s) into the tx graph using the [`insert_txout`] function.
     ///
     /// Note `tx` does not have to be in the graph for this to work.
     ///
@@ -1106,8 +1116,8 @@ impl Wallet {
         txs
     }
 
-    /// Return the balance, separated into available, trusted-pending, untrusted-pending and immature
-    /// values.
+    /// Return the balance, separated into available, trusted-pending, untrusted-pending and
+    /// immature values.
     pub fn balance(&self) -> Balance {
         self.indexed_graph.graph().balance(
             &self.chain,
@@ -1183,7 +1193,8 @@ impl Wallet {
 
     /// Start building a transaction.
     ///
-    /// This returns a blank [`TxBuilder`] from which you can specify the parameters for the transaction.
+    /// This returns a blank [`TxBuilder`] from which you can specify the parameters for the
+    /// transaction.
     ///
     /// ## Example
     ///
@@ -1239,8 +1250,8 @@ impl Wallet {
             })
             .transpose()?;
 
-        // The policy allows spending external outputs, but it requires a policy path that hasn't been
-        // provided
+        // The policy allows spending external outputs, but it requires a policy path that hasn't
+        // been provided
         if params.change_policy != tx_builder::ChangeSpendPolicy::OnlyChange
             && external_policy.requires_path()
             && params.external_policy_path.is_none()
@@ -1315,7 +1326,8 @@ impl Wallet {
                 match requirements.timelock {
                     // No requirement, just use the fee_sniping_height
                     None => fee_sniping_height,
-                    // There's a block-based requirement, but the value is lower than the fee_sniping_height
+                    // There's a block-based requirement, but the value is lower than the
+                    // fee_sniping_height
                     Some(value @ absolute::LockTime::Blocks(_)) if value < fee_sniping_height => {
                         fee_sniping_height
                     }
@@ -1473,11 +1485,13 @@ impl Wallet {
         tx.input = coin_selection
             .selected
             .iter()
-            .map(|u| bitcoin::TxIn {
-                previous_output: u.outpoint(),
-                script_sig: ScriptBuf::default(),
-                sequence: u.sequence().unwrap_or(n_sequence),
-                witness: Witness::new(),
+            .map(|u| {
+                bitcoin::TxIn {
+                    previous_output: u.outpoint(),
+                    script_sig: ScriptBuf::default(),
+                    sequence: u.sequence().unwrap_or(n_sequence),
+                    witness: Witness::new(),
+                }
             })
             .collect();
 
@@ -1645,23 +1659,25 @@ impl Wallet {
                     .map(|(prev_tx, chain_position)| {
                         let txout = prev_tx.output[txin.previous_output.vout as usize].clone();
                         match txout_index.index_of_spk(txout.script_pubkey.clone()) {
-                            Some(&(keychain, derivation_index)) => (
-                                txin.previous_output,
-                                WeightedUtxo {
-                                    satisfaction_weight: self
-                                        .public_descriptor(keychain)
-                                        .max_weight_to_satisfy()
-                                        .unwrap(),
-                                    utxo: Utxo::Local(LocalOutput {
-                                        outpoint: txin.previous_output,
-                                        txout: txout.clone(),
-                                        keychain,
-                                        is_spent: true,
-                                        derivation_index,
-                                        chain_position,
-                                    }),
-                                },
-                            ),
+                            Some(&(keychain, derivation_index)) => {
+                                (
+                                    txin.previous_output,
+                                    WeightedUtxo {
+                                        satisfaction_weight: self
+                                            .public_descriptor(keychain)
+                                            .max_weight_to_satisfy()
+                                            .unwrap(),
+                                        utxo: Utxo::Local(LocalOutput {
+                                            outpoint: txin.previous_output,
+                                            txout: txout.clone(),
+                                            keychain,
+                                            is_spent: true,
+                                            derivation_index,
+                                            chain_position,
+                                        }),
+                                    },
+                                )
+                            }
                             None => {
                                 let satisfaction_weight = Weight::from_wu_usize(
                                     serialize(&txin.script_sig).len() * 4
@@ -1733,7 +1749,8 @@ impl Wallet {
     }
 
     /// Sign a transaction with all the wallet's signers, in the order specified by every signer's
-    /// [`SignerOrdering`]. This function returns the `Result` type with an encapsulated `bool` that has the value true if the PSBT was finalized, or false otherwise.
+    /// [`SignerOrdering`]. This function returns the `Result` type with an encapsulated `bool` that
+    /// has the value true if the PSBT was finalized, or false otherwise.
     ///
     /// The [`SignOptions`] can be used to tweak the behavior of the software signers, and the way
     /// the transaction is finalized at the end. Note that it can't be guaranteed that *every*
@@ -1765,8 +1782,8 @@ impl Wallet {
         self.update_psbt_with_descriptor(psbt)
             .map_err(SignerError::MiniscriptPsbt)?;
 
-        // If we aren't allowed to use `witness_utxo`, ensure that every input (except p2tr and finalized ones)
-        // has the `non_witness_utxo`
+        // If we aren't allowed to use `witness_utxo`, ensure that every input (except p2tr and
+        // finalized ones) has the `non_witness_utxo`
         if !sign_options.trust_witness_utxo
             && psbt
                 .inputs
@@ -1892,8 +1909,8 @@ impl Wallet {
 
             // - Try to derive the descriptor by looking at the txout. If it's in our database, we
             //   know exactly which `keychain` to use, and which derivation index it is
-            // - If that fails, try to derive it by looking at the psbt input: the complete logic
-            //   is in `src/descriptor/mod.rs`, but it will basically look at `bip32_derivation`,
+            // - If that fails, try to derive it by looking at the psbt input: the complete logic is
+            //   in `src/descriptor/mod.rs`, but it will basically look at `bip32_derivation`,
             //   `redeem_script` and `witness_script` to determine the right derivation
             // - If that also fails, it will try it on the internal descriptor, if present
             let desc = psbt
@@ -1956,13 +1973,14 @@ impl Wallet {
         &self.secp
     }
 
-    /// The derivation index of this wallet. It will return `None` if it has not derived any addresses.
-    /// Otherwise, it will return the index of the highest address it has derived.
+    /// The derivation index of this wallet. It will return `None` if it has not derived any
+    /// addresses. Otherwise, it will return the index of the highest address it has derived.
     pub fn derivation_index(&self, keychain: KeychainKind) -> Option<u32> {
         self.indexed_graph.index.last_revealed_index(keychain)
     }
 
-    /// The index of the next address that you would get if you were to ask the wallet for a new address
+    /// The index of the next address that you would get if you were to ask the wallet for a new
+    /// address
     pub fn next_derivation_index(&self, keychain: KeychainKind) -> u32 {
         self.indexed_graph
             .index
@@ -2018,10 +2036,11 @@ impl Wallet {
                         .is_mature(current_height)
                         .then(|| new_local_utxo(k, i, full_txo))
                 })
-                // only process UTxOs not selected manually, they will be considered later in the chain
-                // NOTE: this avoid UTxOs in both required and optional list
+                // only process UTxOs not selected manually, they will be considered later in the
+                // chain NOTE: this avoid UTxOs in both required and optional list
                 .filter(|may_spend| !params.utxos.contains_key(&may_spend.outpoint))
-                // only add to optional UTxOs those which satisfy the change policy if we reuse change
+                // only add to optional UTxOs those which satisfy the change policy if we reuse
+                // change
                 .filter(|local_output| {
                     self.keychains().count() == 1
                         || params.change_policy.is_satisfied_by(local_output)
@@ -2032,12 +2051,14 @@ impl Wallet {
                 .filter(|local_output| {
                     params.bumping_fee.is_none() || local_output.chain_position.is_confirmed()
                 })
-                .map(|utxo| WeightedUtxo {
-                    satisfaction_weight: self
-                        .public_descriptor(utxo.keychain)
-                        .max_weight_to_satisfy()
-                        .unwrap(),
-                    utxo: Utxo::Local(utxo),
+                .map(|utxo| {
+                    WeightedUtxo {
+                        satisfaction_weight: self
+                            .public_descriptor(utxo.keychain)
+                            .max_weight_to_satisfy()
+                            .unwrap(),
+                        utxo: Utxo::Local(utxo),
+                    }
                 })
                 .collect()
         }
@@ -2087,13 +2108,17 @@ impl Wallet {
                     *psbt_input =
                         match self.get_psbt_input(utxo, params.sighash, params.only_witness_utxo) {
                             Ok(psbt_input) => psbt_input,
-                            Err(e) => match e {
-                                CreateTxError::UnknownUtxo => psbt::Input {
-                                    sighash_type: params.sighash,
-                                    ..psbt::Input::default()
-                                },
-                                _ => return Err(e),
-                            },
+                            Err(e) => {
+                                match e {
+                                    CreateTxError::UnknownUtxo => {
+                                        psbt::Input {
+                                            sighash_type: params.sighash,
+                                            ..psbt::Input::default()
+                                        }
+                                    }
+                                    _ => return Err(e),
+                                }
+                            }
                         }
                 }
                 Utxo::Foreign {
@@ -2311,21 +2336,27 @@ impl Wallet {
     /// [`apply_block_connected_to`]: Self::apply_block_connected_to
     pub fn apply_block(&mut self, block: &Block, height: u32) -> Result<(), CannotConnectError> {
         let connected_to = match height.checked_sub(1) {
-            Some(prev_height) => BlockId {
-                height: prev_height,
-                hash: block.header.prev_blockhash,
-            },
-            None => BlockId {
-                height,
-                hash: block.block_hash(),
-            },
+            Some(prev_height) => {
+                BlockId {
+                    height: prev_height,
+                    hash: block.header.prev_blockhash,
+                }
+            }
+            None => {
+                BlockId {
+                    height,
+                    hash: block.block_hash(),
+                }
+            }
         };
         self.apply_block_connected_to(block, height, connected_to)
-            .map_err(|err| match err {
-                ApplyHeaderError::InconsistentBlocks => {
-                    unreachable!("connected_to is derived from the block so must be consistent")
+            .map_err(|err| {
+                match err {
+                    ApplyHeaderError::InconsistentBlocks => {
+                        unreachable!("connected_to is derived from the block so must be consistent")
+                    }
+                    ApplyHeaderError::CannotConnect(err) => err,
                 }
-                ApplyHeaderError::CannotConnect(err) => err,
             })
     }
 
@@ -2617,12 +2648,14 @@ mod test {
         // filtered out
         let expected = vec![wallet
             .get_utxo(OutPoint { txid, vout: 1 })
-            .map(|utxo| WeightedUtxo {
-                satisfaction_weight: wallet
-                    .public_descriptor(utxo.keychain)
-                    .max_weight_to_satisfy()
-                    .unwrap(),
-                utxo: Utxo::Local(utxo),
+            .map(|utxo| {
+                WeightedUtxo {
+                    satisfaction_weight: wallet
+                        .public_descriptor(utxo.keychain)
+                        .max_weight_to_satisfy()
+                        .unwrap(),
+                    utxo: Utxo::Local(utxo),
+                }
             })
             .unwrap()];
 

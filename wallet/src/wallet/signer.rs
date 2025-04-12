@@ -240,8 +240,8 @@ impl<S: Sized + fmt::Debug + Clone> Deref for SignerWrapper<S> {
 pub trait SignerCommon: fmt::Debug + Send + Sync {
     /// Return the [`SignerId`] for this signer
     ///
-    /// The [`SignerId`] can be used to lookup a signer in the [`Wallet`](crate::Wallet)'s signers map or to
-    /// compare two signers.
+    /// The [`SignerId`] can be used to lookup a signer in the [`Wallet`](crate::Wallet)'s signers
+    /// map or to compare two signers.
     fn id(&self, secp: &SecpCtx) -> SignerId;
 
     /// Return the secret key for the signer
@@ -256,9 +256,9 @@ pub trait SignerCommon: fmt::Debug + Send + Sync {
 
 /// PSBT Input signer
 ///
-/// This trait can be implemented to provide custom signers to the wallet. If the signer supports signing
-/// individual inputs, this trait should be implemented and BDK will provide automatically an implementation
-/// for [`TransactionSigner`].
+/// This trait can be implemented to provide custom signers to the wallet. If the signer supports
+/// signing individual inputs, this trait should be implemented and BDK will provide automatically
+/// an implementation for [`TransactionSigner`].
 pub trait InputSigner: SignerCommon {
     /// Sign a single psbt input
     fn sign_input(
@@ -272,8 +272,8 @@ pub trait InputSigner: SignerCommon {
 
 /// PSBT signer
 ///
-/// This trait can be implemented when the signer can't sign inputs individually, but signs the whole transaction
-/// at once.
+/// This trait can be implemented when the signer can't sign inputs individually, but signs the
+/// whole transaction at once.
 pub trait TransactionSigner: SignerCommon {
     /// Sign all the inputs of the psbt
     fn sign_transaction(
@@ -386,11 +386,13 @@ fn multikey_to_xkeys<K: InnerXKey + Clone>(
         .derivation_paths
         .into_paths()
         .into_iter()
-        .map(|derivation_path| DescriptorXKey {
-            origin: multikey.origin.clone(),
-            xkey: multikey.xkey.clone(),
-            derivation_path,
-            wildcard: multikey.wildcard,
+        .map(|derivation_path| {
+            DescriptorXKey {
+                origin: multikey.origin.clone(),
+                xkey: multikey.xkey.clone(),
+                derivation_path,
+                wildcard: multikey.wildcard,
+            }
         })
         .collect()
 }
@@ -575,9 +577,11 @@ fn sign_psbt_schnorr(
 ) {
     let keypair = secp256k1::Keypair::from_seckey_slice(secp, secret_key.as_ref()).unwrap();
     let keypair = match leaf_hash {
-        None => keypair
-            .tap_tweak(secp, psbt_input.tap_merkle_root)
-            .to_inner(),
+        None => {
+            keypair
+                .tap_tweak(secp, psbt_input.tap_merkle_root)
+                .to_inner()
+        }
         Some(_) => keypair, // no tweak for script spend
     };
 
@@ -656,34 +660,42 @@ impl SignersContainer {
 
         for (pubkey, secret) in keymap {
             let ctx = match descriptor {
-                Descriptor::Tr(tr) => SignerContext::Tap {
-                    is_internal_key: tr.internal_key() == &pubkey,
-                },
+                Descriptor::Tr(tr) => {
+                    SignerContext::Tap {
+                        is_internal_key: tr.internal_key() == &pubkey,
+                    }
+                }
                 _ if descriptor.is_witness() => SignerContext::Segwitv0,
                 _ => SignerContext::Legacy,
             };
 
             match secret {
-                DescriptorSecretKey::Single(private_key) => container.add_external(
-                    SignerId::from(
-                        private_key
-                            .key
-                            .public_key(secp)
-                            .to_pubkeyhash(SigType::Ecdsa),
-                    ),
-                    SignerOrdering::default(),
-                    Arc::new(SignerWrapper::new(private_key.key, ctx)),
-                ),
-                DescriptorSecretKey::XPrv(xprv) => container.add_external(
-                    SignerId::from(xprv.root_fingerprint(secp)),
-                    SignerOrdering::default(),
-                    Arc::new(SignerWrapper::new(xprv, ctx)),
-                ),
-                DescriptorSecretKey::MultiXPrv(xprv) => container.add_external(
-                    SignerId::from(xprv.root_fingerprint(secp)),
-                    SignerOrdering::default(),
-                    Arc::new(SignerWrapper::new(xprv, ctx)),
-                ),
+                DescriptorSecretKey::Single(private_key) => {
+                    container.add_external(
+                        SignerId::from(
+                            private_key
+                                .key
+                                .public_key(secp)
+                                .to_pubkeyhash(SigType::Ecdsa),
+                        ),
+                        SignerOrdering::default(),
+                        Arc::new(SignerWrapper::new(private_key.key, ctx)),
+                    )
+                }
+                DescriptorSecretKey::XPrv(xprv) => {
+                    container.add_external(
+                        SignerId::from(xprv.root_fingerprint(secp)),
+                        SignerOrdering::default(),
+                        Arc::new(SignerWrapper::new(xprv, ctx)),
+                    )
+                }
+                DescriptorSecretKey::MultiXPrv(xprv) => {
+                    container.add_external(
+                        SignerId::from(xprv.root_fingerprint(secp)),
+                        SignerOrdering::default(),
+                        Arc::new(SignerWrapper::new(xprv, ctx)),
+                    )
+                }
             };
         }
 
@@ -766,8 +778,8 @@ pub struct SignOptions {
     /// a transaction
     ///
     /// The wallet will only "use" a timelock to satisfy the spending policy of an input if the
-    /// timelock height has already been reached. This option allows overriding the "current height" to let the
-    /// wallet use timelocks in the future to spend a coin.
+    /// timelock height has already been reached. This option allows overriding the "current
+    /// height" to let the wallet use timelocks in the future to spend a coin.
     pub assume_height: Option<u32>,
 
     /// Whether the signer should use the `sighash_type` set in the PSBT when signing, no matter

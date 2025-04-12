@@ -228,11 +228,13 @@ pub enum BuildFeeBumpError {
 impl fmt::Display for BuildFeeBumpError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::UnknownUtxo(outpoint) => write!(
-                f,
-                "UTXO not found in the internal database with txid: {}, vout: {}",
-                outpoint.txid, outpoint.vout
-            ),
+            Self::UnknownUtxo(outpoint) => {
+                write!(
+                    f,
+                    "UTXO not found in the internal database with txid: {}, vout: {}",
+                    outpoint.txid, outpoint.vout
+                )
+            }
             Self::TransactionNotFound(txid) => {
                 write!(
                     f,

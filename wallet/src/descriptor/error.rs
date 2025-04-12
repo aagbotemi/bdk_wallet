@@ -62,14 +62,18 @@ impl fmt::Display for Error {
             Self::InvalidDescriptorChecksum => {
                 write!(f, "The provided descriptor doesn't match its checksum")
             }
-            Self::HardenedDerivationXpub => write!(
-                f,
-                "The descriptor contains hardened derivation steps on public extended keys"
-            ),
-            Self::MultiPath => write!(
-                f,
-                "The descriptor contains multipath keys, which are not supported yet"
-            ),
+            Self::HardenedDerivationXpub => {
+                write!(
+                    f,
+                    "The descriptor contains hardened derivation steps on public extended keys"
+                )
+            }
+            Self::MultiPath => {
+                write!(
+                    f,
+                    "The descriptor contains multipath keys, which are not supported yet"
+                )
+            }
             Self::Key(err) => write!(f, "Key error: {}", err),
             Self::Policy(err) => write!(f, "Policy error: {}", err),
             Self::InvalidDescriptorCharacter(char) => {
